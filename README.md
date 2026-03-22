@@ -21,23 +21,31 @@ Phone (Telegram)            Local Machine
 4. Send photos, documents, or voice messages
 5. Permission denials show inline buttons to approve and retry
 
-## Setup
+## Quick start
 
-### Prerequisites
+1. **Create a Telegram bot** — open [@BotFather](https://t.me/BotFather), send `/newbot`, follow the prompts, copy the token
+2. **Get your Telegram user ID** — open [@userinfobot](https://t.me/userinfobot), send `/start`, copy the number
+3. **Create a `.ccremote` file** in your project directory:
+   ```env
+   CCREMOTE_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+   CCREMOTE_ALLOWED_USER=123456789
+   ```
+4. **Run:**
+   ```bash
+   uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
+   ```
+5. Open your bot's DM in Telegram and start chatting with Claude
 
-- Python 3.11+
-- [uv](https://docs.astral.sh/uv/) (recommended) or pip
+> **Tip:** Add `.ccremote` to your global `.gitignore` — it contains secrets.
+
+## Prerequisites
+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and authenticated
-- A Telegram bot token (from [@BotFather](https://t.me/BotFather))
-- OpenAI API key (optional, for voice transcription — no SDK needed)
+- Python 3.11+ and [uv](https://docs.astral.sh/uv/) (recommended) or pip
+- A Telegram bot token (see step 1 above)
+- OpenAI API key (optional, only needed for voice message transcription)
 
-### Install
-
-```bash
-uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
-```
-
-Or install locally for development:
+### Install locally (for development)
 
 ```bash
 git clone https://github.com/nurikk/ccremote.git
@@ -49,21 +57,20 @@ uv pip install -e .
 
 ## Configuration
 
-ccremote uses two layers of configuration:
+### Environment variables vs `.ccremote` file
 
-### 1. Global environment variables
+You can configure ccremote in two ways — they can be combined:
 
-Set these in your shell profile (`~/.zshrc`, `~/.bashrc`) for defaults that apply to all projects:
+**Option A: Global environment variables** (apply to all projects)
 
 ```bash
+# Add to ~/.zshrc or ~/.bashrc
 export CCREMOTE_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
 export CCREMOTE_ALLOWED_USER=123456789
-export CCREMOTE_OPENAI_API_KEY=sk-...
+export CCREMOTE_OPENAI_API_KEY=sk-...   # optional, for voice messages
 ```
 
-### 2. Per-project `.ccremote` file
-
-Create a `.ccremote` file in any project directory to override globals for that project. This is useful when you have multiple bots or want different settings per project.
+**Option B: Per-project `.ccremote` file** (overrides env vars for that project)
 
 ```env
 CCREMOTE_BOT_TOKEN=999888:XYZ-different-bot-token
@@ -71,16 +78,7 @@ CCREMOTE_ALLOWED_USER=123456789
 CCREMOTE_OPENAI_API_KEY=sk-...
 ```
 
-**Priority order** (highest to lowest):
-1. Per-project `.ccremote` file
-2. Global environment variables
-3. Built-in defaults
-
-This means a `.ccremote` file always wins over env vars. If you set `CCREMOTE_BOT_TOKEN` globally but also have it in a project's `.ccremote`, the project file takes precedence.
-
-### Finding your Telegram user ID
-
-Send `/start` to [@userinfobot](https://t.me/userinfobot).
+**Priority:** `.ccremote` file > environment variables > defaults.
 
 ### Configuration options
 
@@ -94,8 +92,6 @@ Send `/start` to [@userinfobot](https://t.me/userinfobot).
 | `CCREMOTE_DRAFT_THROTTLE_MS` | no | `300` | Min ms between draft updates |
 | `CCREMOTE_MAX_MESSAGE_LENGTH` | no | `4000` | Max chars per Telegram message |
 | `CCREMOTE_CLAUDE_ALLOWED_TOOLS` | no | `["Read","Edit",...]` | JSON array of tools to allow |
-
-> **Tip:** Add `.ccremote` to your global `.gitignore` — it contains secrets.
 
 ## Usage
 
@@ -150,7 +146,6 @@ src/ccremote/
 - Single session mode — one `ccremote` process per project, DM-only. This is intentional: `sendMessageDraft` only works in private chats, supergroup forums don't allow bots to create new threads via the Bot API, making group-based workflows impractical
 - Each prompt spawns `claude -p --resume <id>` (stateless process, persistent session)
 - `sendMessageDraft` (Bot API 9.3+) for flicker-free live streaming
-- Final messages include cost (e.g. `$0.005`)
 - Markdown converted to Telegram HTML for formatted output
 - Per-project `.ccremote` overrides global env vars
 
