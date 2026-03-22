@@ -86,4 +86,3 @@ async def unregister_commands(bot: Bot, chat_id: int) -> None:
         logger.info("Unregistered commands for chat %s", chat_id)
     except Exception:
         logger.exception("Failed to unregister commands for chat %s", chat_id)
-
