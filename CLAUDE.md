@@ -61,6 +61,10 @@ src/ccremote/
   models.py    — Session pydantic model
 ```
 
+## Code Style
+
+- No local imports — all imports must be at module level, not inside functions or methods.
+
 ## Testing
 
 - `tests/unit/` — pure logic (event parsing, DraftBuilder, config, models, commands)
