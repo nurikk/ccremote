@@ -152,7 +152,7 @@ class DraftBuilder:
         self.is_thinking = False
         self.num_turns: int | None = None
         self.permission_denials: list[dict] = []
-        self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob", "TodoWrite"))
+        self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob"))
         self._last_tool: str | None = None
 
     def process(self, parsed: dict) -> None:
