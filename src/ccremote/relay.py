@@ -470,11 +470,10 @@ async def relay_prompt_to_claude(
                 if new_sid and not session.claude_session_id:
                     session.claude_session_id = new_sid
                 slash_cmds = parsed.get("slash_commands", [])
-                logger.info("Raw slash_commands from init: %s", slash_cmds[:3])
-                if slash_cmds:
+                if slash_cmds and not session.slash_commands:
                     session.slash_commands = normalize_slash_commands(slash_cmds)
                     session.slash_commands.append(("clear", "Start a new session"))
-                    logger.info("Normalized %d slash commands: %s", len(session.slash_commands), session.slash_commands)
+                    logger.info("Registered %d slash commands", len(session.slash_commands))
                     await register_commands(bot, chat_id, session.slash_commands)
                 continue
 
