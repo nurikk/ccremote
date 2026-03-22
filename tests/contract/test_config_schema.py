@@ -58,4 +58,4 @@ class TestConfigDefaults:
         assert config.log_level == "info"
         assert config.draft_throttle_ms == 300
         assert config.max_message_length == 4000
-        assert "Read" in config.claude_allowed_tools
+        assert config.claude_allowed_tools is None

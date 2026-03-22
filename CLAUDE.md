@@ -31,7 +31,7 @@ All config via env vars or per-project `.ccremote` file (pydantic-settings, pref
 - `CCREMOTE_DRAFT_THROTTLE_MS` — min ms between draft updates (default: `300`)
 - `CCREMOTE_MAX_MESSAGE_LENGTH` — max chars per Telegram message (default: `4000`)
 - `CCREMOTE_INCLUDE_PARTIAL_MESSAGES` — include partial messages in stream (default: `true`)
-- `CCREMOTE_CLAUDE_ALLOWED_TOOLS` — JSON array of tools to allow (default: `["Read","Edit","Write","Glob","Grep","Bash"]`)
+- `CCREMOTE_CLAUDE_ALLOWED_TOOLS` — JSON array of tools to allow (default: not set, all tools allowed)
 
 Priority: `.ccremote` file > env vars > defaults.
 

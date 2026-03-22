@@ -91,7 +91,7 @@ CCREMOTE_OPENAI_API_KEY=sk-...
 | `CCREMOTE_INCLUDE_PARTIAL_MESSAGES` | no | `true` | Include partial messages in stream |
 | `CCREMOTE_DRAFT_THROTTLE_MS` | no | `300` | Min ms between draft updates |
 | `CCREMOTE_MAX_MESSAGE_LENGTH` | no | `4000` | Max chars per Telegram message |
-| `CCREMOTE_CLAUDE_ALLOWED_TOOLS` | no | `["Read","Edit",...]` | JSON array of tools to allow |
+| `CCREMOTE_CLAUDE_ALLOWED_TOOLS` | no | — | JSON array of allowed tools (all if unset) |
 
 ## Usage
 
