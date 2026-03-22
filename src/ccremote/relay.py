@@ -152,7 +152,8 @@ class DraftBuilder:
         self.is_thinking = False
         self.num_turns: int | None = None
         self.permission_denials: list[dict] = []
-        self._quiet_tools = frozenset(("Read", "Edit", "Grep"))
+        self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob", "TodoWrite"))
+        self._last_tool: str | None = None
 
     def process(self, parsed: dict) -> None:
         ptype = parsed.get("type")
@@ -173,19 +174,21 @@ class DraftBuilder:
             if self.active_tool:
                 if self.active_tool not in self._quiet_tools:
                     self.tool_log.append(self._format_tool_summary())
+                self._last_tool = self.active_tool
                 self.active_tool = None
                 self.tool_input_json = ""
             if self.is_thinking:
                 self.is_thinking = False
         elif ptype == "tool_result":
-            for r in parsed.get("results", []):
-                line = f"  ↳ {r.get('content', '')[:100]}"
-                duration = parsed.get("duration_ms")
-                if duration:
-                    line += f" ({duration}ms)"
-                self.tool_log.append(line)
-            for f in parsed.get("filenames", [])[:3]:
-                self.tool_log.append(f"  📄 {f}")
+            if self._last_tool not in self._quiet_tools:
+                for r in parsed.get("results", []):
+                    line = f"  ↳ {r.get('content', '')[:100]}"
+                    duration = parsed.get("duration_ms")
+                    if duration:
+                        line += f" ({duration}ms)"
+                    self.tool_log.append(line)
+                for f in parsed.get("filenames", [])[:3]:
+                    self.tool_log.append(f"  📄 {f}")
         elif ptype == "assistant":
             text = parsed.get("text", "")
             if text:
