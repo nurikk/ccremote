@@ -18,3 +18,4 @@ htmlcov/
 .env
 .env.*
 .ccremote
+.ccremote-attachments

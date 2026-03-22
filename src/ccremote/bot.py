@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from aiogram import Bot, Dispatcher, F
 from aiogram.enums import ParseMode
+from aiogram.types import BotCommand, BotCommandScopeChat
 
 from ccremote.markdown import md_to_tg_html
 
@@ -54,8 +55,6 @@ async def register_commands(bot: Bot, chat_id: int, commands: list[tuple[str, st
 
     Fetches current commands first and only calls set_my_commands if they differ.
     """
-    from aiogram.types import BotCommand, BotCommandScopeChat
-
     if not commands:
         await unregister_commands(bot, chat_id)
         return
@@ -82,22 +81,9 @@ async def register_commands(bot: Bot, chat_id: int, commands: list[tuple[str, st
 
 async def unregister_commands(bot: Bot, chat_id: int) -> None:
     """Remove all bot commands for this chat."""
-    from aiogram.types import BotCommandScopeChat
-
     try:
         await bot.delete_my_commands(scope=BotCommandScopeChat(chat_id=chat_id))
         logger.info("Unregistered commands for chat %s", chat_id)
     except Exception:
         logger.exception("Failed to unregister commands for chat %s", chat_id)
 
-
-async def notify_user(bot: Bot, chat_id: int, text: str) -> None:
-    """Send a notification DM."""
-    try:
-        await bot.send_message(
-            chat_id=chat_id,
-            text=md_to_tg_html(text),
-            parse_mode=ParseMode.HTML,
-        )
-    except Exception:
-        logger.debug("Could not notify user %s", chat_id)
