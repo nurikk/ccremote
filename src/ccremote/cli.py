@@ -50,10 +50,9 @@ def main() -> None:
         from ccremote.models import Session
         from ccremote.relay import setup_relay_handlers
 
-        bot = Bot(token=config.bot_token)
         dp = create_dispatcher(config)
 
-        async with bot:
+        async with  Bot(token=config.bot_token) as bot:
             me = await bot.get_me()
             logger.info("Bot connected: @%s", me.username)
 
@@ -62,8 +61,7 @@ def main() -> None:
                 working_directory=cwd,
             )
 
-            dir_name = Path(cwd).name
-            msg = f"🟢 **ccremote active**\n`{dir_name}`\n`{cwd}`"
+            msg = f"🟢 **ccremote active**\n`{cwd}`"
             await notify_user(bot, config.allowed_user, msg)
             logger.info("ccremote active in %s — send messages to @%s", cwd, me.username)
 
