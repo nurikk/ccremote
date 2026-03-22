@@ -15,7 +15,7 @@ Phone (Telegram)            Local Machine
   ◄ final response           └─ Whisper transcription
 ```
 
-1. Run `ccremote .` in any project directory
+1. Run `uvx --from git+https://github.com/nurikk/ccremote.git ccremote .` in any project directory
 2. Chat with Claude in your bot's DM
 3. Responses stream as live draft previews, then appear as final messages
 4. Send photos, documents, or voice messages
@@ -34,7 +34,13 @@ Phone (Telegram)            Local Machine
 ### Install
 
 ```bash
-git clone https://github.com/your-user/ccremote.git
+uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
+```
+
+Or install locally for development:
+
+```bash
+git clone https://github.com/nurikk/ccremote.git
 cd ccremote
 uv venv .venv
 source .venv/bin/activate
@@ -94,10 +100,11 @@ Send `/start` to [@userinfobot](https://t.me/userinfobot).
 ## Usage
 
 ```bash
-# Start ccremote in the current project
-ccremote .
+# With uvx (no install needed)
+uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
 
-# Or specify a path
+# Or if installed locally
+ccremote .
 ccremote ~/code/myproject
 ```
 
