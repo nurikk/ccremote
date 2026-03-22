@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import logging
 import sys
 from pathlib import Path
@@ -41,9 +42,9 @@ def main() -> None:
     )
 
     async def _run() -> None:
-        from aiogram import Bot
-
         import uuid
+
+        from aiogram import Bot
 
         from ccremote.bot import create_dispatcher, notify_user
         from ccremote.models import Session
@@ -62,7 +63,8 @@ def main() -> None:
             )
 
             dir_name = Path(cwd).name
-            await notify_user(bot, config.allowed_user, f"🟢 **ccremote active**\n`{dir_name}`\n`{cwd}`")
+            msg = f"🟢 **ccremote active**\n`{dir_name}`\n`{cwd}`"
+            await notify_user(bot, config.allowed_user, msg)
             logger.info("ccremote active in %s — send messages to @%s", cwd, me.username)
 
             setup_relay_handlers(dp, bot, session, config)
@@ -72,13 +74,9 @@ def main() -> None:
             finally:
                 logger.info("Stopping ccremote...")
                 session.terminate()
-                try:
+                with contextlib.suppress(Exception):
                     await notify_user(bot, config.allowed_user, "🔴 **ccremote stopped**")
-                except Exception:
-                    pass
                 logger.info("Stopped.")
 
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(_run())
-    except KeyboardInterrupt:
-        pass

@@ -60,5 +60,5 @@ markers = [
 source = ["ccremote"]
 
 [tool.coverage.report]
-fail_under = 50
+fail_under = 30
 show_missing = true

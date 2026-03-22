@@ -47,21 +47,25 @@ def parse_claude_event(event: dict) -> dict:
                     case {"type": "text", "text": str(t)}:
                         text_parts.append(t)
                     case {"type": "tool_use", "name": str(name)}:
-                        tool_uses.append({
-                            "name": name,
-                            "id": block.get("id", ""),
-                            "input": block.get("input", {}),
-                        })
+                        tool_uses.append(
+                            {
+                                "name": name,
+                                "id": block.get("id", ""),
+                                "input": block.get("input", {}),
+                            }
+                        )
             return {"type": "assistant", "text": "\n".join(text_parts), "tool_uses": tool_uses}
         case {"type": "user", "message": {"content": list(content)}}:
             results = []
             for block in content:
                 match block:
                     case {"type": "tool_result", "tool_use_id": str(tid)}:
-                        results.append({
-                            "tool_use_id": tid,
-                            "content": str(block.get("content", ""))[:200],
-                        })
+                        results.append(
+                            {
+                                "tool_use_id": tid,
+                                "content": str(block.get("content", ""))[:200],
+                            }
+                        )
             tool_info = event.get("tool_use_result", {})
             if not isinstance(tool_info, dict):
                 tool_info = {}
@@ -88,7 +92,10 @@ def parse_claude_event(event: dict) -> dict:
 
 def _parse_stream_event(inner: dict) -> dict:
     match inner:
-        case {"type": "content_block_start", "content_block": {"type": "tool_use", "name": str(name)}}:
+        case {
+            "type": "content_block_start",
+            "content_block": {"type": "tool_use", "name": str(name)},
+        }:
             return {"type": "tool_start", "name": name, "id": inner["content_block"].get("id", "")}
         case {"type": "content_block_start", "content_block": {"type": "thinking"}}:
             return {"type": "thinking_start"}
@@ -96,9 +103,15 @@ def _parse_stream_event(inner: dict) -> dict:
             return {"type": "block_start", "block_type": block.get("type", "")}
         case {"type": "content_block_delta", "delta": {"type": "text_delta", "text": str(t)}}:
             return {"type": "text_delta", "text": t}
-        case {"type": "content_block_delta", "delta": {"type": "input_json_delta", "partial_json": str(j)}}:
+        case {
+            "type": "content_block_delta",
+            "delta": {"type": "input_json_delta", "partial_json": str(j)},
+        }:
             return {"type": "input_delta", "json": j}
-        case {"type": "content_block_delta", "delta": {"type": "thinking_delta", "thinking": str(t)}}:
+        case {
+            "type": "content_block_delta",
+            "delta": {"type": "thinking_delta", "thinking": str(t)},
+        }:
             return {"type": "thinking_delta", "text": t}
         case {"type": "content_block_delta"}:
             return {"type": "delta_other"}
@@ -274,7 +287,10 @@ async def transcribe_voice(bot: Bot, message: Message, config: Configuration) ->
         form.add_field("model", "whisper-1")
         with open(tmp_path, "rb") as audio_file:
             form.add_field(
-                "file", audio_file, filename="voice.ogg", content_type="audio/ogg",
+                "file",
+                audio_file,
+                filename="voice.ogg",
+                content_type="audio/ogg",
             )
             async with (
                 aiohttp.ClientSession() as http,
@@ -303,7 +319,7 @@ def setup_relay_handlers(
     config: Configuration,
 ) -> None:
     """Register DM message handler — routes all messages to the active session."""
-    from aiogram.types import CallbackQuery, Message
+    from aiogram.types import CallbackQuery
     from aiogram.utils.keyboard import InlineKeyboardBuilder
 
     # Store pending retries: callback_id -> (prompt, denied_tools)
@@ -321,7 +337,10 @@ def setup_relay_handlers(
         if message.photo or message.document:
             path = await download_attachment(bot, message, session.working_directory)
             if path:
-                text = f"{text}\n\n[User sent you a file: {path}]".strip() if text else f"User sent you a file: {path}"
+                if text:
+                    text = f"{text}\n\n[User sent you a file: {path}]".strip()
+                else:
+                    text = f"User sent you a file: {path}"
 
         if not text:
             return
@@ -336,18 +355,21 @@ def setup_relay_handlers(
 
         session.last_message_at = datetime.now(UTC)
 
-        task = asyncio.create_task(
-            _run_relay(text, message.chat.id)
-        )
+        task = asyncio.create_task(_run_relay(text, message.chat.id))
         task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
 
     async def _run_relay(
-        prompt: str, chat_id: int, allowed_tools: list[str] | None = None,
+        prompt: str,
+        chat_id: int,
+        allowed_tools: list[str] | None = None,
     ) -> None:
-        from ccremote.bot import send_message
 
         denials = await relay_prompt_to_claude(
-            prompt, session, chat_id, bot, config,
+            prompt,
+            session,
+            chat_id,
+            bot,
+            config,
             allowed_tools=allowed_tools,
         )
         if not denials:

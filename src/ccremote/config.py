@@ -43,7 +43,12 @@ class Configuration(BaseSettings):
     draft_throttle_ms: int = 300
     max_message_length: int = 4000
     claude_allowed_tools: list[str] = [
-        "Read", "Edit", "Write", "Glob", "Grep", "Bash",
+        "Read",
+        "Edit",
+        "Write",
+        "Glob",
+        "Grep",
+        "Bash",
     ]
 
     @classmethod
