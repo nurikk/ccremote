@@ -252,6 +252,8 @@ async def download_attachment(bot: Bot, message: Message, work_dir: str) -> Path
         if message.photo:
             photo = message.photo[-1]  # largest size
             file = await bot.get_file(photo.file_id)
+            if not file.file_path:
+                return None
             ext = Path(file.file_path).suffix or ".jpg"
             dest = attachments_dir / f"{photo.file_unique_id}{ext}"
             await bot.download_file(file.file_path, dest)
@@ -259,6 +261,8 @@ async def download_attachment(bot: Bot, message: Message, work_dir: str) -> Path
 
         if message.document:
             file = await bot.get_file(message.document.file_id)
+            if not file.file_path:
+                return None
             name = message.document.file_name or message.document.file_unique_id
             dest = attachments_dir / name
             await bot.download_file(file.file_path, dest)
@@ -278,10 +282,15 @@ async def transcribe_voice(bot: Bot, message: Message, config: Configuration) ->
     try:
         import aiohttp
 
-        file = await bot.get_file(message.voice.file_id)
+        voice = message.voice
+        if not voice:
+            return None
+        file = await bot.get_file(voice.file_id)
+        if not file.file_path:
+            return None
         with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as tmp:
             tmp_path = Path(tmp.name)
-            await bot.download_file(file.file_path, tmp)
+            await bot.download_file(file.file_path, tmp_path)
 
         form = aiohttp.FormData()
         form.add_field("model", "whisper-1")
@@ -305,7 +314,7 @@ async def transcribe_voice(bot: Bot, message: Message, config: Configuration) ->
 
         tmp_path.unlink(missing_ok=True)
         text = result.get("text", "")
-        logger.info("Transcribed voice (%ds): %s", message.voice.duration, text[:80])
+        logger.info("Transcribed voice (%ds): %s", voice.duration, text[:80])
         return text
     except Exception:
         logger.exception("Voice transcription failed")
@@ -319,7 +328,7 @@ def setup_relay_handlers(
     config: Configuration,
 ) -> None:
     """Register DM message handler — routes all messages to the active session."""
-    from aiogram.types import CallbackQuery
+    from aiogram.types import CallbackQuery, Message
     from aiogram.utils.keyboard import InlineKeyboardBuilder
 
     # Store pending retries: callback_id -> (prompt, denied_tools)
@@ -345,13 +354,15 @@ def setup_relay_handlers(
         if not text:
             return
 
+        user_id = message.from_user.id if message.from_user else 0
+
         if text.strip().lower() == "/clear":
             session.claude_session_id = ""
-            logger.info("Session cleared by user %s", message.from_user.id)
+            logger.info("Session cleared by user %s", user_id)
             await bot.send_message(chat_id=message.chat.id, text="Session cleared.")
             return
 
-        logger.info("DM from %s → session %s", message.from_user.id, session.session_id[:8])
+        logger.info("DM from %s → session %s", user_id, session.session_id[:8])
 
         session.last_message_at = datetime.now(UTC)
 
@@ -402,6 +413,8 @@ def setup_relay_handlers(
 
     @dp.callback_query(lambda c: c.data and c.data.startswith("perm_"))
     async def handle_permission_callback(callback: CallbackQuery) -> None:
+        if not callback.data:
+            return
         callback_id, action = callback.data.rsplit(":", 1)
 
         if callback_id not in pending_retries:
@@ -409,19 +422,22 @@ def setup_relay_handlers(
             return
 
         prompt, denied_tools = pending_retries.pop(callback_id)
+        msg = callback.message
 
         if action == "allow":
             await callback.answer("Retrying with permissions...")
-            await callback.message.edit_text(
-                f"✅ Allowed: {', '.join(denied_tools)} — retrying..."
-            )
-            task = asyncio.create_task(
-                _run_relay(prompt, callback.message.chat.id, allowed_tools=denied_tools)
-            )
-            task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
+            if isinstance(msg, Message):
+                await msg.edit_text(
+                    f"✅ Allowed: {', '.join(denied_tools)} — retrying..."
+                )
+                task = asyncio.create_task(
+                    _run_relay(prompt, msg.chat.id, allowed_tools=denied_tools)
+                )
+                task.add_done_callback(lambda t: t.result() if not t.cancelled() else None)
         else:
             await callback.answer("Skipped")
-            await callback.message.edit_text("⏭ Skipped permission request.")
+            if isinstance(msg, Message):
+                await msg.edit_text("⏭ Skipped permission request.")
 
 
 async def relay_prompt_to_claude(
