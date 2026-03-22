@@ -172,8 +172,7 @@ class DraftBuilder:
             self.tool_input_json += parsed.get("json", "")
         elif ptype == "block_stop":
             if self.active_tool:
-                if self.active_tool not in self._quiet_tools:
-                    self.tool_log.append(self._format_tool_summary())
+                self.tool_log.append(self._format_tool_summary())
                 self._last_tool = self.active_tool
                 self.active_tool = None
                 self.tool_input_json = ""

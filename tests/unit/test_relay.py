@@ -145,12 +145,13 @@ class TestDraftBuilder:
         assert "Bash" in draft
         assert "ls /tmp" in draft
 
-    def test_quiet_tools_filtered_from_log(self):
+    def test_quiet_tools_results_filtered(self):
         d = DraftBuilder()
-        for tool in ("Read", "Edit", "Grep"):
-            d.process({"type": "tool_start", "name": tool, "id": "t1"})
-            d.process({"type": "block_stop"})
-        assert d.tool_log == []
+        d.process({"type": "tool_start", "name": "Read", "id": "t1"})
+        d.process({"type": "block_stop"})
+        assert len(d.tool_log) == 1  # tool name is shown
+        d.process({"type": "tool_result", "results": [{"content": "file contents"}]})
+        assert len(d.tool_log) == 1  # but result is filtered
 
     def test_thinking_shows_indicator(self):
         d = DraftBuilder()
