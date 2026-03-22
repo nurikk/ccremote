@@ -188,8 +188,6 @@ class DraftBuilder:
             text = parsed.get("text", "")
             if text:
                 self.response_text = text
-            for tool in parsed.get("tool_uses", []):
-                self.tool_log.append(f"🔧 {tool['name']}")
         elif ptype == "api_retry":
             self.tool_log.append(f"⚠️ Retry #{parsed.get('attempt', 0)}: {parsed.get('error', '')}")
         elif ptype == "result":
