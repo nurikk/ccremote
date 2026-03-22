@@ -52,7 +52,7 @@ def main() -> None:
 
         dp = create_dispatcher(config)
 
-        async with  Bot(token=config.bot_token) as bot:
+        async with Bot(token=config.bot_token) as bot:
             me = await bot.get_me()
             logger.info("Bot connected: @%s", me.username)
 
