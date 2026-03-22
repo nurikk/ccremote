@@ -109,12 +109,10 @@ class TestClaudeEventParsing:
             "type": "result",
             "subtype": "success",
             "result": "Final output",
-            "total_cost_usd": 0.01,
         }
         result = parse_claude_event(event)
         assert result["type"] == "result"
         assert result["text"] == "Final output"
-        assert result["cost_usd"] == 0.01
 
     def test_parse_api_retry(self):
         event = {"type": "system", "subtype": "api_retry", "attempt": 1, "error": "rate_limit"}
@@ -166,12 +164,9 @@ class TestDraftBuilder:
     def test_final_message_has_response(self):
         d = DraftBuilder()
         d.process({"type": "text_delta", "text": "The answer is 42."})
-        d.process(
-            {"type": "result", "text": "The answer is 42.", "cost_usd": 0.005, "num_turns": 1}
-        )
+        d.process({"type": "result", "text": "The answer is 42.", "num_turns": 1})
         final = d.build_final()
         assert "The answer is 42." in final
-        assert "$0.005" in final
 
     def test_truncates_to_max_length(self):
         d = DraftBuilder(max_length=50)

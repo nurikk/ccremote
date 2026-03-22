@@ -82,7 +82,6 @@ def parse_claude_event(event: dict) -> dict:
                 "type": "result",
                 "text": event.get("result", ""),
                 "is_error": event.get("is_error", False),
-                "cost_usd": event.get("total_cost_usd"),
                 "num_turns": event.get("num_turns"),
                 "permission_denials": event.get("permission_denials", []),
             }
@@ -151,7 +150,6 @@ class DraftBuilder:
         self.tool_input_json = ""
         self.tool_log: list[str] = []
         self.is_thinking = False
-        self.cost_usd: float | None = None
         self.num_turns: int | None = None
         self.permission_denials: list[dict] = []
 
@@ -198,7 +196,6 @@ class DraftBuilder:
             text = parsed.get("text", "")
             if text:
                 self.response_text = text
-            self.cost_usd = parsed.get("cost_usd")
             self.num_turns = parsed.get("num_turns")
             self.permission_denials = parsed.get("permission_denials", [])
 
@@ -235,8 +232,6 @@ class DraftBuilder:
 
     def build_final(self) -> str:
         text = self.response_text or "(no response)"
-        if self.cost_usd is not None:
-            text += f"\n\n`${self.cost_usd}`"
         return text[: self.max_length]
 
 
