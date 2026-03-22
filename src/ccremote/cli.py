@@ -27,15 +27,13 @@ def main() -> None:
         logger.error("Not a directory: %s", cwd)
         sys.exit(2)
 
-    if not config_file_exists(cwd):
-        logger.error(SETUP_INSTRUCTIONS)
-        sys.exit(1)
-
     try:
         config = load_config(cwd)
-    except ConfigError as e:
-        logger.error("Config error: %s", e)
-        sys.exit(2)
+    except ConfigError:
+        if not config_file_exists(cwd):
+            logger.error(SETUP_INSTRUCTIONS)
+            sys.exit(1)
+        raise
 
     logging.basicConfig(
         level=getattr(logging, config.log_level.upper()),

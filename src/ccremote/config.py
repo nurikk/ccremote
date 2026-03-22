@@ -7,16 +7,18 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
 SETUP_INSTRUCTIONS = """\
-No .ccremote file found in this directory.
+Missing required configuration (CCREMOTE_BOT_TOKEN, CCREMOTE_ALLOWED_USER).
 
-To get started:
+Either set them as environment variables or create a .ccremote file:
 
 1. Create a Telegram bot via https://t.me/BotFather
 2. Get your user ID via https://t.me/userinfobot
-3. Create a .ccremote file:
+3. Create a .ccremote file in the project directory:
 
    CCREMOTE_BOT_TOKEN=<your-bot-token>
    CCREMOTE_ALLOWED_USER=<your-user-id>
+
+   Or export them as environment variables.
 
 4. Run: ccremote .
 """
