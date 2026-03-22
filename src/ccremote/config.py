@@ -44,10 +44,6 @@ class Configuration(BaseSettings):
         "Read", "Edit", "Write", "Glob", "Grep", "Bash",
     ]
 
-    @property
-    def allowed_users_set(self) -> frozenset[int]:
-        return frozenset({self.allowed_user})
-
     @classmethod
     def settings_customise_sources(
         cls,
