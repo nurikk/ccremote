@@ -10,14 +10,15 @@ import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from aiogram import Bot, Dispatcher
-    from aiogram.types import Message
+import aiohttp
+from aiogram import Bot, Dispatcher
+from aiogram.types import CallbackQuery, Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-    from ccremote.config import Configuration
-    from ccremote.models import Session
+from ccremote.bot import register_commands, send_draft, send_message
+from ccremote.config import Configuration
+from ccremote.models import Session
 
 logger = logging.getLogger(__name__)
 
@@ -277,8 +278,6 @@ async def transcribe_voice(bot: Bot, message: Message, config: Configuration) ->
         return None
 
     try:
-        import aiohttp
-
         voice = message.voice
         if not voice:
             return None
@@ -325,9 +324,6 @@ def setup_relay_handlers(
     config: Configuration,
 ) -> None:
     """Register DM message handler — routes all messages to the active session."""
-    from aiogram.types import CallbackQuery, Message
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-
     # Store pending retries: callback_id -> (prompt, denied_tools)
     pending_retries: dict[str, tuple[str, list[str]]] = {}
 
@@ -447,8 +443,6 @@ async def relay_prompt_to_claude(
 
     Returns list of permission denials (empty if none).
     """
-    from ccremote.bot import register_commands, send_draft, send_message
-
     logger.info("Relaying to claude session %s: %s", session.session_id[:8], prompt[:80])
 
     args = [
@@ -520,6 +514,7 @@ async def relay_prompt_to_claude(
                     last_draft_time = now
 
         final_text = draft.build_final()
+        logger.info("Sending to user: %s", final_text[:200])
         await send_message(bot, chat_id, final_text)
         return draft.permission_denials
 
