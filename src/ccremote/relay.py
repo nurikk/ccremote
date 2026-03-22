@@ -427,9 +427,7 @@ def setup_relay_handlers(
         if action == "allow":
             await callback.answer("Retrying with permissions...")
             if isinstance(msg, Message):
-                await msg.edit_text(
-                    f"✅ Allowed: {', '.join(denied_tools)} — retrying..."
-                )
+                await msg.edit_text(f"✅ Allowed: {', '.join(denied_tools)} — retrying...")
                 task = asyncio.create_task(
                     _run_relay(prompt, msg.chat.id, allowed_tools=denied_tools)
                 )
