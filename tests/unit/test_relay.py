@@ -138,12 +138,19 @@ class TestDraftBuilder:
 
     def test_tool_complete_shows_in_log(self):
         d = DraftBuilder()
-        d.process({"type": "tool_start", "name": "Read", "id": "t1"})
-        d.process({"type": "input_delta", "json": '{"file_path": "/tmp/x"}'})
+        d.process({"type": "tool_start", "name": "Bash", "id": "t1"})
+        d.process({"type": "input_delta", "json": '{"command": "ls /tmp"}'})
         d.process({"type": "block_stop"})
         draft = d.build_draft()
-        assert "Read" in draft
-        assert "/tmp/x" in draft
+        assert "Bash" in draft
+        assert "ls /tmp" in draft
+
+    def test_quiet_tools_filtered_from_log(self):
+        d = DraftBuilder()
+        for tool in ("Read", "Edit", "Grep"):
+            d.process({"type": "tool_start", "name": tool, "id": "t1"})
+            d.process({"type": "block_stop"})
+        assert d.tool_log == []
 
     def test_thinking_shows_indicator(self):
         d = DraftBuilder()

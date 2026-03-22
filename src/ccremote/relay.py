@@ -152,6 +152,7 @@ class DraftBuilder:
         self.is_thinking = False
         self.num_turns: int | None = None
         self.permission_denials: list[dict] = []
+        self._quiet_tools = frozenset(("Read", "Edit", "Grep"))
 
     def process(self, parsed: dict) -> None:
         ptype = parsed.get("type")
@@ -170,7 +171,8 @@ class DraftBuilder:
             self.tool_input_json += parsed.get("json", "")
         elif ptype == "block_stop":
             if self.active_tool:
-                self.tool_log.append(self._format_tool_summary())
+                if self.active_tool not in self._quiet_tools:
+                    self.tool_log.append(self._format_tool_summary())
                 self.active_tool = None
                 self.tool_input_json = ""
             if self.is_thinking:
