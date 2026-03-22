@@ -121,10 +121,10 @@ When Claude tries to use a tool that's blocked by permissions, you'll see an inl
 ⚠️ Permission denied:
   • Bash: ls ~/Downloads
 
-[✅ Allow & Retry]  [❌ Skip]
+[✅ Allow]  [❌ Skip]
 ```
 
-Tapping **Allow & Retry** re-runs the prompt with the denied tools added to `--allowedTools`.
+Tapping **Allow** re-runs the prompt with the denied tools added to `--allowedTools`.
 
 ### Session continuity
 

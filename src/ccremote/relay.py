@@ -394,13 +394,13 @@ def setup_relay_handlers(
 
         tools_desc = "\n".join(f"  • {d}" for d in denied_details)
         kb = InlineKeyboardBuilder()
-        kb.button(text="✅ Allow & Retry", callback_data=f"{callback_id}:allow")
+        kb.button(text="✅ Allow", callback_data=f"{callback_id}:allow")
         kb.button(text="❌ Skip", callback_data=f"{callback_id}:skip")
         kb.adjust(2)
 
         await bot.send_message(
             chat_id=chat_id,
-            text=f"⚠️ Permission denied:\n{tools_desc}\n\nAllow and retry?",
+            text=f"⚠️ Permission denied:\n{tools_desc}",
             reply_markup=kb.as_markup(),
         )
 
@@ -418,9 +418,9 @@ def setup_relay_handlers(
         msg = callback.message
 
         if action == "allow":
-            await callback.answer("Retrying with permissions...")
+            await callback.answer("Allowed")
             if isinstance(msg, Message):
-                await msg.edit_text(f"✅ Allowed: {', '.join(denied_tools)} — retrying...")
+                await msg.edit_text(f"✅ Allowed: {', '.join(denied_tools)}")
                 task = asyncio.create_task(
                     _run_relay(prompt, msg.chat.id, allowed_tools=denied_tools)
                 )
