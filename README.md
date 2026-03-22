@@ -147,7 +147,7 @@ src/ccremote/
 ```
 
 **Key design decisions:**
-- Single session mode — one `ccremote` process per project, DM-only
+- Single session mode — one `ccremote` process per project, DM-only. This is intentional: `sendMessageDraft` only works in private chats, supergroup forums don't allow bots to create new threads via the Bot API, making group-based workflows impractical
 - Each prompt spawns `claude -p --resume <id>` (stateless process, persistent session)
 - `sendMessageDraft` (Bot API 9.3+) for flicker-free live streaming
 - Final messages include cost (e.g. `$0.005`)
