@@ -83,7 +83,6 @@ def parse_claude_event(event: dict) -> dict:
                 "type": "result",
                 "text": event.get("result", ""),
                 "is_error": event.get("is_error", False),
-                "num_turns": event.get("num_turns"),
                 "permission_denials": event.get("permission_denials", []),
             }
         case _:
@@ -151,7 +150,6 @@ class DraftBuilder:
         self.tool_input_json = ""
         self.tool_log: list[str] = []
         self.is_thinking = False
-        self.num_turns: int | None = None
         self.permission_denials: list[dict] = []
         self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob"))
         self._last_tool: str | None = None
@@ -209,11 +207,8 @@ class DraftBuilder:
                 text = parsed.get("text", "")
                 if text:
                     self.response_text = text
-                self.num_turns = parsed.get("num_turns")
                 self.permission_denials = parsed.get("permission_denials", [])
-                logger.info(
-                    "Result: turns=%s, denials=%d", self.num_turns, len(self.permission_denials)
-                )
+                logger.info("Result: denials=%d", len(self.permission_denials))
 
     def _format_tool_summary(self) -> str:
         name = self.active_tool or "unknown"

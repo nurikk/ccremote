@@ -172,7 +172,7 @@ class TestDraftBuilder:
     def test_final_message_has_response(self):
         d = DraftBuilder()
         d.process({"type": "text_delta", "text": "The answer is 42."})
-        d.process({"type": "result", "text": "The answer is 42.", "num_turns": 1})
+        d.process({"type": "result", "text": "The answer is 42."})
         final = d.build_final()
         assert "The answer is 42." in final
 
