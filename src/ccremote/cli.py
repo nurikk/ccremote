@@ -12,7 +12,7 @@ from pathlib import Path
 
 from aiogram import Bot
 
-from ccremote.bot import create_dispatcher, send_message
+from ccremote.bot import create_dispatcher, register_commands, send_message
 from ccremote.config import SETUP_INSTRUCTIONS, ConfigError, config_file_exists, load_config
 from ccremote.models import Session
 from ccremote.relay import setup_relay_handlers
@@ -65,6 +65,10 @@ def main() -> None:
             else:
                 msg = f"🟢 **ccremote active**\n`{cwd}`"
             await send_message(bot, config.allowed_user, msg)
+            await register_commands(bot, config.allowed_user, [
+                ("start", "Describe current session and working directory"),
+                ("new", "Start a new conversation"),
+            ])
             logger.info("ccremote active in %s — send messages to @%s", cwd, me.username)
 
             setup_relay_handlers(dp, bot, session, config)

@@ -21,7 +21,6 @@ class Session(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     last_message_at: datetime | None = None
     process_pid: int | None = None
-    slash_commands: list[tuple[str, str]] = Field(default_factory=list)
 
     def terminate(self) -> None:
         self.status = SessionStatus.TERMINATED

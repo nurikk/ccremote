@@ -20,10 +20,6 @@ class TestSession:
         session = Session(session_id="test-123", working_directory="/tmp/test")
         assert session.created_at >= before
 
-    def test_slash_commands_default_empty(self):
-        session = Session(session_id="test-123", working_directory="/tmp/test")
-        assert session.slash_commands == []
-
     def test_claude_session_id_default_empty(self):
         session = Session(session_id="test-123", working_directory="/tmp/test")
         assert session.claude_session_id == ""

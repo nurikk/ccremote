@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import re
 import tempfile
 import time
 from collections import deque
@@ -17,7 +16,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from ccremote.bot import register_commands, send_draft, send_message
+from ccremote.bot import send_draft, send_message
 from ccremote.config import Configuration, save_session_id
 from ccremote.models import Session
 
@@ -122,19 +121,6 @@ def _parse_stream_event(inner: dict) -> dict:
         case _:
             return {"type": "stream_other"}
 
-
-def normalize_slash_commands(raw_commands: list[dict]) -> list[tuple[str, str]]:
-    result = []
-    for cmd in raw_commands:
-        raw_name = cmd.get("name", "") if isinstance(cmd, dict) else str(cmd)
-        desc = cmd.get("description", "") if isinstance(cmd, dict) else ""
-        raw_name = raw_name.lstrip("/")
-        if ":" in raw_name:
-            continue
-        name = re.sub(r"[^a-z0-9_]", "_", raw_name.lower())[:32]
-        if name:
-            result.append((name, desc[:256]))
-    return result
 
 
 # ── Draft builder ──────────────────────────────────────────────────
@@ -380,12 +366,19 @@ def setup_relay_handlers(
 
         user_id = message.from_user.id if message.from_user else 0
 
-        if text.strip().lower() == "/clear":
+        cmd = text.strip().lower()
+        if cmd in ("/new", "/clear"):
             session.claude_session_id = ""
             save_session_id(session.working_directory, "")
             logger.info("Session cleared by user %s", user_id)
             await send_message(bot, message.chat.id, "Session cleared.")
             return
+
+        if cmd == "/start":
+            text = (
+                "Briefly describe: what project is this, what directory you're in, "
+                "and what you're ready to help with."
+            )
 
         logger.info("DM from %s → session %s", user_id, session.session_id[:8])
 
@@ -501,12 +494,6 @@ async def relay_prompt_to_claude(
                 if new_sid and not session.claude_session_id:
                     session.claude_session_id = new_sid
                     save_session_id(session.working_directory, new_sid)
-                slash_cmds = parsed.get("slash_commands", [])
-                if slash_cmds and not session.slash_commands:
-                    session.slash_commands = normalize_slash_commands(slash_cmds)
-                    session.slash_commands.append(("clear", "Start a new session"))
-                    logger.info("Registered %d slash commands", len(session.slash_commands))
-                    await register_commands(bot, chat_id, session.slash_commands)
                 continue
 
             draft.process(parsed)
