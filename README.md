@@ -15,7 +15,7 @@ Phone (Telegram)            Local Machine
   ◄ final response           └─ Whisper transcription
 ```
 
-1. Run `uvx --from git+https://github.com/nurikk/ccremote.git ccremote .` in any project directory
+1. Run `uvx ccremote .` in any project directory
 2. Chat with Claude in your bot's DM
 3. Responses stream as live draft previews, then appear as final messages
 4. Send photos, documents, or voice messages
@@ -32,7 +32,7 @@ Phone (Telegram)            Local Machine
    ```
 4. **Run:**
    ```bash
-   uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
+   uvx ccremote .
    ```
 5. Open your bot's DM in Telegram and start chatting with Claude
 
@@ -97,7 +97,7 @@ CCREMOTE_OPENAI_API_KEY=sk-...
 
 ```bash
 # With uvx (no install needed)
-uvx --from git+https://github.com/nurikk/ccremote.git ccremote .
+uvx ccremote .
 
 # Or if installed locally
 ccremote .
