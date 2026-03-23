@@ -448,7 +448,6 @@ async def relay_prompt_to_claude(
     args = [
         "claude",
         "-p",
-        prompt,
         "--output-format",
         "stream-json",
         "--verbose",
@@ -461,6 +460,8 @@ async def relay_prompt_to_claude(
 
     if config.include_partial_messages:
         args.append("--include-partial-messages")
+
+    args.extend(["--", prompt])
 
     try:
         proc = await asyncio.create_subprocess_exec(
