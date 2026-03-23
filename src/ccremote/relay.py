@@ -16,7 +16,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from ccremote.bot import register_commands, send_draft, send_message
+from ccremote.bot import register_commands, send_draft
 from ccremote.config import Configuration
 from ccremote.models import Session
 
@@ -480,7 +480,7 @@ async def relay_prompt_to_claude(
             cwd=session.working_directory,
         )
     except FileNotFoundError:
-        await send_message(bot, chat_id, "Error: claude CLI not found.")
+        await send_draft(bot, chat_id, "Error: claude CLI not found.", 0)
         return []
 
     session.process_pid = proc.pid
@@ -524,12 +524,12 @@ async def relay_prompt_to_claude(
 
         final_text = draft.build_final()
         logger.info("Sending to user: %s", final_text[:200])
-        await send_message(bot, chat_id, final_text)
+        await send_draft(bot, chat_id, final_text, draft_id)
         return draft.permission_denials
 
     except Exception:
         logger.exception("Error during relay for session %s", session.session_id)
-        await send_message(bot, chat_id, "Error: Claude session encountered an error.")
+        await send_draft(bot, chat_id, "Error: Claude session encountered an error.", draft_id)
         return []
     finally:
         await proc.wait()
