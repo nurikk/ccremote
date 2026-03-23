@@ -122,7 +122,6 @@ def _parse_stream_event(inner: dict) -> dict:
             return {"type": "stream_other"}
 
 
-
 # ── Draft builder ──────────────────────────────────────────────────
 
 
