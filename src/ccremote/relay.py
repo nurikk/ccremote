@@ -157,50 +157,49 @@ class DraftBuilder:
         self._last_tool: str | None = None
 
     def process(self, parsed: dict) -> None:
-        ptype = parsed.get("type")
-
-        if ptype == "text_delta":
-            self.response_text += parsed.get("text", "")
-        elif ptype == "thinking_start":
-            self.is_thinking = True
-            self.thinking_text = ""
-        elif ptype == "thinking_delta":
-            self.thinking_text += parsed.get("text", "")
-        elif ptype == "tool_start":
-            self.active_tool = parsed.get("name", "")
-            self.tool_input_json = ""
-        elif ptype == "input_delta":
-            self.tool_input_json += parsed.get("json", "")
-        elif ptype == "block_stop":
-            if self.active_tool:
-                self.tool_log.append(self._format_tool_summary())
-                self._last_tool = self.active_tool
-                self.active_tool = None
+        match parsed:
+            case {"type": "text_delta", "text": str(t)}:
+                self.response_text += t
+            case {"type": "thinking_start"}:
+                self.is_thinking = True
+                self.thinking_text = ""
+            case {"type": "thinking_delta", "text": str(t)}:
+                self.thinking_text += t
+            case {"type": "tool_start", "name": str(name)}:
+                self.active_tool = name
                 self.tool_input_json = ""
-            if self.is_thinking:
-                self.is_thinking = False
-        elif ptype == "tool_result":
-            if self._last_tool not in self._quiet_tools:
-                for r in parsed.get("results", []):
-                    line = f"  ↳ {r.get('content', '')[:100]}"
-                    duration = parsed.get("duration_ms")
-                    if duration:
-                        line += f" ({duration}ms)"
-                    self.tool_log.append(line)
-                for f in parsed.get("filenames", [])[:3]:
-                    self.tool_log.append(f"  📄 {f}")
-        elif ptype == "assistant":
-            text = parsed.get("text", "")
-            if text:
-                self.response_text = text
-        elif ptype == "api_retry":
-            self.tool_log.append(f"⚠️ Retry #{parsed.get('attempt', 0)}: {parsed.get('error', '')}")
-        elif ptype == "result":
-            text = parsed.get("text", "")
-            if text:
-                self.response_text = text
-            self.num_turns = parsed.get("num_turns")
-            self.permission_denials = parsed.get("permission_denials", [])
+            case {"type": "input_delta", "json": str(j)}:
+                self.tool_input_json += j
+            case {"type": "block_stop"}:
+                if self.active_tool:
+                    self.tool_log.append(self._format_tool_summary())
+                    self._last_tool = self.active_tool
+                    self.active_tool = None
+                    self.tool_input_json = ""
+                if self.is_thinking:
+                    self.is_thinking = False
+            case {"type": "tool_result"}:
+                if self._last_tool not in self._quiet_tools:
+                    for r in parsed.get("results", []):
+                        line = f"  ↳ {r.get('content', '')[:100]}"
+                        duration = parsed.get("duration_ms")
+                        if duration:
+                            line += f" ({duration}ms)"
+                        self.tool_log.append(line)
+                    for f in parsed.get("filenames", [])[:3]:
+                        self.tool_log.append(f"  📄 {f}")
+            case {"type": "assistant", "text": str(t)} if t:
+                self.response_text = t
+            case {"type": "api_retry"}:
+                self.tool_log.append(
+                    f"⚠️ Retry #{parsed.get('attempt', 0)}: {parsed.get('error', '')}"
+                )
+            case {"type": "result"}:
+                text = parsed.get("text", "")
+                if text:
+                    self.response_text = text
+                self.num_turns = parsed.get("num_turns")
+                self.permission_denials = parsed.get("permission_denials", [])
 
     def _format_tool_summary(self) -> str:
         name = self.active_tool or "unknown"
