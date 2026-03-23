@@ -349,6 +349,14 @@ def setup_relay_handlers(
         text = message.text or message.caption or ""
 
         if message.voice:
+            if not config.openai_api_key:
+                await message.reply(
+                    "Voice messages are not enabled.\n"
+                    "Set <code>CCREMOTE_OPENAI_API_KEY</code> to your OpenAI API key "
+                    "as an environment variable or in your <code>.ccremote</code> file.",
+                    parse_mode="HTML",
+                )
+                return
             transcription = await transcribe_voice(bot, message, config)
             if transcription:
                 text = transcription
