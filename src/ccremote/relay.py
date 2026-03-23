@@ -526,8 +526,10 @@ async def relay_prompt_to_claude(
         await proc.wait()
         session.process_pid = None
         if proc.returncode and proc.returncode != 0:
+            stderr = await proc.stderr.read() if proc.stderr else b""  # type: ignore[union-attr]
             logger.warning(
-                "Claude exited with code %d for session %s",
+                "Claude exited with code %d for session %s: %s",
                 proc.returncode,
                 session.session_id,
+                stderr.decode(errors="replace").strip()[:500],
             )
