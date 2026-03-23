@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from aiogram import Bot, Dispatcher, F
+from aiogram import Bot, Dispatcher, F, types
 from aiogram.enums import ParseMode
 from aiogram.types import BotCommand, BotCommandScopeChat
 
@@ -38,13 +38,19 @@ async def send_draft(bot: Bot, chat_id: int, text: str, draft_id: int) -> None:
         logger.debug("Draft send failed: %s", e)
 
 
-async def send_message(bot: Bot, chat_id: int, text: str) -> None:
+async def send_message(
+    bot: Bot,
+    chat_id: int,
+    text: str,
+    reply_markup: types.InlineKeyboardMarkup | None = None,
+) -> None:
     """Send a message with HTML formatting."""
     try:
         await bot.send_message(
             chat_id=chat_id,
             text=md_to_tg_html(text),
             parse_mode=ParseMode.HTML,
+            reply_markup=reply_markup,
         )
     except Exception:
         logger.debug("send_message failed for chat %s", chat_id)

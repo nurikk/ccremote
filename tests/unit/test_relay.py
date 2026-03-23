@@ -1,6 +1,6 @@
 """Unit tests for relay."""
 
-from ccremote.relay import DraftBuilder, parse_claude_event
+from ccremote.relay import DraftBuilder, deduplicate_denials, parse_claude_event
 
 
 class TestClaudeEventParsing:
@@ -194,3 +194,40 @@ class TestDraftBuilder:
             }
         )
         assert "100ms" in d.build_draft()
+
+
+def test_deduplicate_denials_removes_duplicates():
+    denials = [
+        {"tool_name": "Bash", "tool_input": {"command": "rm -rf /tmp/foo"}},
+        {"tool_name": "Bash", "tool_input": {"command": "rm -rf /tmp/foo"}},
+        {"tool_name": "Bash", "tool_input": {"command": "rm -rf /tmp/foo"}},
+    ]
+    tools, details = deduplicate_denials(denials)
+    assert tools == ["Bash"]
+    assert details == ["Bash: rm -rf /tmp/foo"]
+
+
+def test_deduplicate_denials_keeps_distinct():
+    denials = [
+        {"tool_name": "Bash", "tool_input": {"command": "ls"}},
+        {"tool_name": "Bash", "tool_input": {"command": "rm -rf /"}},
+        {"tool_name": "Write", "tool_input": {"file_path": "/tmp/x"}},
+    ]
+    tools, details = deduplicate_denials(denials)
+    assert set(tools) == {"Bash", "Write"}
+    assert len(details) == 3
+
+
+def test_deduplicate_denials_empty():
+    tools, details = deduplicate_denials([])
+    assert tools == []
+    assert details == []
+
+
+def test_deduplicate_denials_no_input():
+    denials = [
+        {"tool_name": "Bash"},
+        {"tool_name": "Bash"},
+    ]
+    _tools, details = deduplicate_denials(denials)
+    assert details == ["Bash"]

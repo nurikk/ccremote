@@ -8,6 +8,7 @@ import logging
 import re
 import tempfile
 import time
+from collections import deque
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -16,8 +17,8 @@ from aiogram import Bot, Dispatcher
 from aiogram.types import CallbackQuery, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from ccremote.bot import register_commands, send_draft
-from ccremote.config import Configuration
+from ccremote.bot import register_commands, send_draft, send_message
+from ccremote.config import Configuration, save_session_id
 from ccremote.models import Session
 
 logger = logging.getLogger(__name__)
@@ -148,10 +149,10 @@ class DraftBuilder:
         self.thinking_text = ""
         self.active_tool: str | None = None
         self.tool_input_json = ""
-        self.tool_log: list[str] = []
+        self.tool_log: deque[str] = deque(maxlen=5)
         self.is_thinking = False
         self.permission_denials: list[dict] = []
-        self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob"))
+        self._quiet_tools = frozenset(("Read", "Edit", "Grep", "Glob", "ToolSearch"))
         self._last_tool: str | None = None
 
     def process(self, parsed: dict) -> None:
@@ -228,7 +229,7 @@ class DraftBuilder:
     def build_draft(self) -> str:
         parts = []
         if self.tool_log:
-            parts.append("\n".join(self.tool_log[-10:]))
+            parts.append("\n".join(self.tool_log))
         if self.active_tool:
             parts.append(f"⏳ {self.active_tool}...")
         if self.is_thinking and self.thinking_text:
@@ -244,6 +245,28 @@ class DraftBuilder:
     def build_final(self) -> str:
         text = self.response_text or "(no response)"
         return text[: self.max_length]
+
+
+def deduplicate_denials(denials: list[dict]) -> tuple[list[str], list[str]]:
+    """Extract unique tool names and detail lines from permission denials.
+
+    Returns (denied_tools, denied_details) with duplicates removed.
+    """
+    denied_tools = list({d.get("tool_name", "") for d in denials if d.get("tool_name")})
+    seen: set[str] = set()
+    denied_details: list[str] = []
+    for d in denials:
+        tool = d.get("tool_name", "")
+        inp = d.get("tool_input", {})
+        if isinstance(inp, dict):
+            detail = inp.get("command") or inp.get("file_path") or ""
+        else:
+            detail = str(inp)[:80]
+        entry = f"{tool}: {detail}" if detail else tool
+        if entry not in seen:
+            seen.add(entry)
+            denied_details.append(entry)
+    return denied_tools, denied_details
 
 
 # ── Handlers ───────────────────────────────────────────────────────
@@ -359,8 +382,9 @@ def setup_relay_handlers(
 
         if text.strip().lower() == "/clear":
             session.claude_session_id = ""
+            save_session_id(session.working_directory, "")
             logger.info("Session cleared by user %s", user_id)
-            await bot.send_message(chat_id=message.chat.id, text="Session cleared.")
+            await send_message(bot, message.chat.id, "Session cleared.")
             return
 
         logger.info("DM from %s → session %s", user_id, session.session_id[:8])
@@ -375,41 +399,14 @@ def setup_relay_handlers(
         chat_id: int,
         allowed_tools: list[str] | None = None,
     ) -> None:
-
-        denials = await relay_prompt_to_claude(
+        await relay_prompt_to_claude(
             prompt,
             session,
             chat_id,
             bot,
             config,
             allowed_tools=allowed_tools,
-        )
-        if not denials:
-            return
-
-        denied_tools = list({d.get("tool_name", "") for d in denials if d.get("tool_name")})
-        denied_details = []
-        for d in denials:
-            tool = d.get("tool_name", "")
-            inp = d.get("tool_input", {})
-            if isinstance(inp, dict):
-                detail = inp.get("command") or inp.get("file_path") or ""
-            else:
-                detail = str(inp)[:80]
-            denied_details.append(f"{tool}: {detail}" if detail else tool)
-        callback_id = f"perm_{hash(prompt + str(time.monotonic())) & 0xFFFFFF:06x}"
-        pending_retries[callback_id] = (prompt, denied_tools)
-
-        tools_desc = "\n".join(f"  • {d}" for d in denied_details)
-        kb = InlineKeyboardBuilder()
-        kb.button(text="✅ Allow", callback_data=f"{callback_id}:allow")
-        kb.button(text="❌ Skip", callback_data=f"{callback_id}:skip")
-        kb.adjust(2)
-
-        await bot.send_message(
-            chat_id=chat_id,
-            text=f"⚠️ Permission denied:\n{tools_desc}",
-            reply_markup=kb.as_markup(),
+            pending_retries=pending_retries,
         )
 
     @dp.callback_query(lambda c: c.data and c.data.startswith("perm_"))
@@ -446,11 +443,9 @@ async def relay_prompt_to_claude(
     bot: Bot,
     config: Configuration,
     allowed_tools: list[str] | None = None,
-) -> list[dict]:
-    """Spawn claude --print and stream output via sendMessageDraft.
-
-    Returns list of permission denials (empty if none).
-    """
+    pending_retries: dict[str, tuple[str, list[str]]] | None = None,
+) -> None:
+    """Spawn claude --print and stream output via sendMessageDraft."""
     logger.info("Relaying to claude session %s: %s", session.session_id[:8], prompt[:80])
 
     args = [
@@ -480,8 +475,8 @@ async def relay_prompt_to_claude(
             cwd=session.working_directory,
         )
     except FileNotFoundError:
-        await send_draft(bot, chat_id, "Error: claude CLI not found.", 0)
-        return []
+        await send_message(bot, chat_id, "Error: claude CLI not found.")
+        return
 
     session.process_pid = proc.pid
     draft = DraftBuilder(config.max_message_length)
@@ -505,6 +500,7 @@ async def relay_prompt_to_claude(
                 new_sid = parsed.get("session_id", "")
                 if new_sid and not session.claude_session_id:
                     session.claude_session_id = new_sid
+                    save_session_id(session.working_directory, new_sid)
                 slash_cmds = parsed.get("slash_commands", [])
                 if slash_cmds and not session.slash_commands:
                     session.slash_commands = normalize_slash_commands(slash_cmds)
@@ -524,18 +520,31 @@ async def relay_prompt_to_claude(
 
         final_text = draft.build_final()
         logger.info("Sending to user: %s", final_text[:200])
-        await send_draft(bot, chat_id, final_text, draft_id)
-        return draft.permission_denials
+        await send_message(bot, chat_id, final_text)
+
+        if draft.permission_denials and pending_retries is not None:
+            denied_tools, denied_details = deduplicate_denials(draft.permission_denials)
+            callback_id = f"perm_{hash(prompt + str(time.monotonic())) & 0xFFFFFF:06x}"
+            pending_retries[callback_id] = (prompt, denied_tools)
+
+            tools_desc = "\n".join(f"  • {d}" for d in denied_details)
+            kb = InlineKeyboardBuilder()
+            kb.button(text="✅ Allow", callback_data=f"{callback_id}:allow")
+            kb.button(text="❌ Skip", callback_data=f"{callback_id}:skip")
+            kb.adjust(2)
+
+            await send_message(
+                bot, chat_id, f"⚠️ Permission denied:\n{tools_desc}", reply_markup=kb.as_markup()
+            )
 
     except Exception:
         logger.exception("Error during relay for session %s", session.session_id)
-        await send_draft(bot, chat_id, "Error: Claude session encountered an error.", draft_id)
-        return []
+        await send_message(bot, chat_id, "Error: Claude session encountered an error.")
     finally:
         await proc.wait()
         session.process_pid = None
         if proc.returncode and proc.returncode != 0:
-            stderr = await proc.stderr.read() if proc.stderr else b""  # type: ignore[union-attr]
+            stderr = await proc.stderr.read() if proc.stderr else b""
             logger.warning(
                 "Claude exited with code %d for session %s: %s",
                 proc.returncode,
