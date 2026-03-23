@@ -40,7 +40,7 @@ Priority: `.ccremote` file > env vars > defaults.
 Single-process, DM-only. No daemon, no socket.
 
 - `ccremote .` starts aiogram polling in-process
-- One Claude session per process, resumed via `claude -p --resume <id>`
+- One Claude session per process, resumed via `claude --print --resume <id>`
 - `sendMessageDraft` (Bot API 9.3+) for live streaming preview
 - `sendMessage` for final response with cost
 - Markdown converted to Telegram HTML (`markdown.py`)

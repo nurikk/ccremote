@@ -439,7 +439,7 @@ async def relay_prompt_to_claude(
     config: Configuration,
     allowed_tools: list[str] | None = None,
 ) -> list[dict]:
-    """Spawn claude -p and stream output via sendMessageDraft.
+    """Spawn claude --print and stream output via sendMessageDraft.
 
     Returns list of permission denials (empty if none).
     """
@@ -447,7 +447,7 @@ async def relay_prompt_to_claude(
 
     args = [
         "claude",
-        "-p",
+        "--print",
         "--output-format",
         "stream-json",
         "--verbose",

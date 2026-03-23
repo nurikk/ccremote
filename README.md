@@ -11,7 +11,7 @@ Phone (Telegram)            Local Machine
 ──────────────────          ──────────────────
   DM with bot               ccremote
   "fix the bug"  ────►       ├─ Telegram bot (aiogram)
-  ◄ streaming draft...       ├─ claude -p --resume <id>
+  ◄ streaming draft...       ├─ claude --print --resume <id>
   ◄ final response           └─ Whisper transcription
 ```
 
@@ -128,7 +128,7 @@ Tapping **Allow** re-runs the prompt with the denied tools added to `--allowedTo
 
 ### Session continuity
 
-ccremote uses `claude -p --resume <session_id>` to maintain conversation context. Each message continues the same Claude session, so context builds up naturally across your conversation.
+ccremote uses `claude --print --resume <session_id>` to maintain conversation context. Each message continues the same Claude session, so context builds up naturally across your conversation.
 
 ## Architecture
 
@@ -144,7 +144,7 @@ src/ccremote/
 
 **Key design decisions:**
 - Single session mode — one `ccremote` process per project, DM-only. This is intentional: `sendMessageDraft` only works in private chats, supergroup forums don't allow bots to create new threads via the Bot API, making group-based workflows impractical
-- Each prompt spawns `claude -p --resume <id>` (stateless process, persistent session)
+- Each prompt spawns `claude --print --resume <id>` (stateless process, persistent session)
 - `sendMessageDraft` (Bot API 9.3+) for flicker-free live streaming
 - Markdown converted to Telegram HTML for formatted output
 - Per-project `.ccremote` overrides global env vars
