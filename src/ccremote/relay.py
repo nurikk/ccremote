@@ -225,21 +225,27 @@ class DraftBuilder:
             return f"💻 Bash: {inp.get('command', '')[:60]}"
         return f"🔧 {name}"
 
-    def build_draft(self) -> str:
-        parts = []
+    def build_drafts(self) -> dict[str, str]:
+        """Build separate draft texts keyed by channel: 'tools', 'thinking', 'response'."""
+        drafts: dict[str, str] = {}
+
+        tool_parts = []
         if self.tool_log:
-            parts.append("\n".join(self.tool_log[-10:]))
+            tool_parts.append("\n".join(self.tool_log[-10:]))
         if self.active_tool:
-            parts.append(f"⏳ {self.active_tool}...")
+            tool_parts.append(f"⏳ {self.active_tool}...")
+        if tool_parts:
+            drafts["tools"] = "\n".join(tool_parts)[: self.max_length]
+
         if self.is_thinking and self.thinking_text:
-            parts.append(f"💭 {self.thinking_text[-200:]}")
+            drafts["thinking"] = f"💭 {self.thinking_text[-400:]}"[: self.max_length]
         elif self.is_thinking:
-            parts.append("💭 Thinking...")
+            drafts["thinking"] = "💭 Thinking..."
+
         if self.response_text:
-            parts.append("───")
-            parts.append(self.response_text)
-        text = "\n".join(parts) if parts else "..."
-        return text[: self.max_length]
+            drafts["response"] = self.response_text[: self.max_length]
+
+        return drafts
 
     def build_final(self) -> str:
         text = self.response_text or "(no response)"
@@ -485,7 +491,12 @@ async def relay_prompt_to_claude(
 
     session.process_pid = proc.pid
     draft = DraftBuilder(config.max_message_length)
-    draft_id = hash(session.session_id + str(time.monotonic())) & 0x7FFFFFFF
+    base_id = hash(session.session_id + str(time.monotonic())) & 0x7FFFFFFF
+    draft_ids = {
+        "tools": base_id,
+        "thinking": base_id + 1,
+        "response": base_id + 2,
+    }
     last_draft_time = 0.0
     throttle_s = config.draft_throttle_ms / 1000.0
 
@@ -517,10 +528,9 @@ async def relay_prompt_to_claude(
 
             now = time.monotonic()
             if now - last_draft_time >= throttle_s:
-                draft_text = draft.build_draft()
-                if draft_text:
-                    await send_draft(bot, chat_id, draft_text, draft_id)
-                    last_draft_time = now
+                for channel, text in draft.build_drafts().items():
+                    await send_draft(bot, chat_id, text, draft_ids[channel])
+                last_draft_time = now
 
         final_text = draft.build_final()
         logger.info("Sending to user: %s", final_text[:200])

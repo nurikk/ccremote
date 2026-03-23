@@ -129,21 +129,21 @@ class TestDraftBuilder:
         d = DraftBuilder()
         d.process({"type": "text_delta", "text": "Hello "})
         d.process({"type": "text_delta", "text": "world"})
-        assert "Hello world" in d.build_draft()
+        assert "Hello world" in d.build_drafts()["response"]
 
     def test_tool_start_shows_active(self):
         d = DraftBuilder()
         d.process({"type": "tool_start", "name": "Read", "id": "t1"})
-        assert "Read" in d.build_draft()
+        assert "Read" in d.build_drafts()["tools"]
 
     def test_tool_complete_shows_in_log(self):
         d = DraftBuilder()
         d.process({"type": "tool_start", "name": "Bash", "id": "t1"})
         d.process({"type": "input_delta", "json": '{"command": "ls /tmp"}'})
         d.process({"type": "block_stop"})
-        draft = d.build_draft()
-        assert "Bash" in draft
-        assert "ls /tmp" in draft
+        tools_draft = d.build_drafts()["tools"]
+        assert "Bash" in tools_draft
+        assert "ls /tmp" in tools_draft
 
     def test_quiet_tools_results_filtered(self):
         d = DraftBuilder()
@@ -156,18 +156,18 @@ class TestDraftBuilder:
     def test_thinking_shows_indicator(self):
         d = DraftBuilder()
         d.process({"type": "thinking_start"})
-        assert "Thinking" in d.build_draft()
+        assert "Thinking" in d.build_drafts()["thinking"]
         d.process({"type": "thinking_delta", "text": "Let me consider..."})
-        assert "consider" in d.build_draft()
+        assert "consider" in d.build_drafts()["thinking"]
         d.process({"type": "block_stop"})
-        assert "consider" not in d.build_draft()
+        assert "thinking" not in d.build_drafts()
 
     def test_bash_tool_shows_command(self):
         d = DraftBuilder()
         d.process({"type": "tool_start", "name": "Bash", "id": "t1"})
         d.process({"type": "input_delta", "json": '{"command": "ls -la"}'})
         d.process({"type": "block_stop"})
-        assert "ls -la" in d.build_draft()
+        assert "ls -la" in d.build_drafts()["tools"]
 
     def test_final_message_has_response(self):
         d = DraftBuilder()
@@ -179,10 +179,12 @@ class TestDraftBuilder:
     def test_truncates_to_max_length(self):
         d = DraftBuilder(max_length=50)
         d.process({"type": "text_delta", "text": "x" * 100})
-        assert len(d.build_draft()) <= 50
+        assert len(d.build_drafts()["response"]) <= 50
 
     def test_tool_result_shows_duration(self):
         d = DraftBuilder()
+        d.process({"type": "tool_start", "name": "Bash", "id": "t1"})
+        d.process({"type": "block_stop"})
         d.process(
             {
                 "type": "tool_result",
@@ -191,4 +193,13 @@ class TestDraftBuilder:
                 "filenames": [],
             }
         )
-        assert "100ms" in d.build_draft()
+        assert "100ms" in d.build_drafts()["tools"]
+
+    def test_build_drafts_returns_only_active_channels(self):
+        d = DraftBuilder()
+        assert d.build_drafts() == {}
+        d.process({"type": "text_delta", "text": "hi"})
+        drafts = d.build_drafts()
+        assert "response" in drafts
+        assert "tools" not in drafts
+        assert "thinking" not in drafts
