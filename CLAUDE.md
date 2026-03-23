@@ -65,6 +65,13 @@ src/ccremote/
 
 - No local imports — all imports must be at module level, not inside functions or methods.
 
+## Releasing
+
+1. Bump `version` in `pyproject.toml`
+2. Commit and push
+3. Tag with `git tag v<version>` and `git push --tags`
+4. The `publish.yml` workflow validates the tag matches `pyproject.toml`, runs CI, then publishes to PyPI via trusted publishing
+
 ## Testing
 
 - `tests/unit/` — pure logic (event parsing, DraftBuilder, config, models, commands)
