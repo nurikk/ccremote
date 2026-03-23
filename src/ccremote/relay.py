@@ -163,26 +163,34 @@ class DraftBuilder:
             case {"type": "thinking_start"}:
                 self.is_thinking = True
                 self.thinking_text = ""
+                logger.info("Thinking...")
             case {"type": "thinking_delta", "text": str(t)}:
                 self.thinking_text += t
             case {"type": "tool_start", "name": str(name)}:
                 self.active_tool = name
                 self.tool_input_json = ""
+                logger.info("Tool start: %s", name)
             case {"type": "input_delta", "json": str(j)}:
                 self.tool_input_json += j
             case {"type": "block_stop"}:
                 if self.active_tool:
-                    self.tool_log.append(self._format_tool_summary())
+                    summary = self._format_tool_summary()
+                    self.tool_log.append(summary)
+                    logger.info("Tool done: %s", summary)
                     self._last_tool = self.active_tool
                     self.active_tool = None
                     self.tool_input_json = ""
                 if self.is_thinking:
                     self.is_thinking = False
             case {"type": "tool_result"}:
+                results = parsed.get("results", [])
+                duration = parsed.get("duration_ms")
+                for r in results:
+                    content = r.get("content", "")[:200]
+                    logger.info("Tool result: %s", content[:200])
                 if self._last_tool not in self._quiet_tools:
-                    for r in parsed.get("results", []):
+                    for r in results:
                         line = f"  ↳ {r.get('content', '')[:100]}"
-                        duration = parsed.get("duration_ms")
                         if duration:
                             line += f" ({duration}ms)"
                         self.tool_log.append(line)
@@ -191,6 +199,9 @@ class DraftBuilder:
             case {"type": "assistant", "text": str(t)} if t:
                 self.response_text = t
             case {"type": "api_retry"}:
+                logger.warning(
+                    "API retry #%s: %s", parsed.get("attempt", 0), parsed.get("error", "")
+                )
                 self.tool_log.append(
                     f"⚠️ Retry #{parsed.get('attempt', 0)}: {parsed.get('error', '')}"
                 )
@@ -200,6 +211,9 @@ class DraftBuilder:
                     self.response_text = text
                 self.num_turns = parsed.get("num_turns")
                 self.permission_denials = parsed.get("permission_denials", [])
+                logger.info(
+                    "Result: turns=%s, denials=%d", self.num_turns, len(self.permission_denials)
+                )
 
     def _format_tool_summary(self) -> str:
         name = self.active_tool or "unknown"
