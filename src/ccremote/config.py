@@ -50,6 +50,7 @@ class Configuration(BaseSettings):
     draft_throttle_ms: int = 300
     max_message_length: int = 4000
     claude_allowed_tools: list[str] | None = None
+    session_id: str = ""
 
     @classmethod
     def settings_customise_sources(
@@ -74,3 +75,26 @@ def load_config(cwd: str | Path | None = None) -> Configuration:
 
 def config_file_exists(cwd: str | Path) -> bool:
     return (Path(cwd) / ".ccremote").exists()
+
+
+def save_session_id(cwd: str | Path, session_id: str) -> None:
+    """Write or update CCREMOTE_SESSION_ID in the .ccremote file."""
+    path = Path(cwd) / ".ccremote"
+    key = "CCREMOTE_SESSION_ID"
+
+    lines = path.read_text().splitlines() if path.exists() else []
+
+    found = False
+    for i, line in enumerate(lines):
+        if line.startswith(f"{key}="):
+            if session_id:
+                lines[i] = f"{key}={session_id}"
+            else:
+                lines.pop(i)
+            found = True
+            break
+
+    if not found and session_id:
+        lines.append(f"{key}={session_id}")
+
+    path.write_text(("\n".join(lines) + "\n") if lines else "")

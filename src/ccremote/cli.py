@@ -56,10 +56,14 @@ def main() -> None:
 
             session = Session(
                 session_id=str(uuid.uuid4()),
+                claude_session_id=config.session_id,
                 working_directory=cwd,
             )
 
-            msg = f"🟢 **ccremote active**\n`{cwd}`"
+            if config.session_id:
+                msg = f"🟢 **ccremote active** (resuming)\n`{cwd}`"
+            else:
+                msg = f"🟢 **ccremote active**\n`{cwd}`"
             await send_message(bot, config.allowed_user, msg)
             logger.info("ccremote active in %s — send messages to @%s", cwd, me.username)
 
