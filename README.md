@@ -168,6 +168,13 @@ ruff format src/ tests/
 ty check src/
 ```
 
+## User Feedback
+
+<p>
+  <img src="docs/feedback/1.png" alt="User feedback 1" height="200">
+  <img src="docs/feedback/2.png" alt="User feedback 2" height="200">
+</p>
+
 ## License
 
 MIT
