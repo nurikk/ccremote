@@ -20,14 +20,15 @@ classifiers = [
     "Topic :: Communications :: Chat",
 ]
 
-[project.urls]
-Repository = "https://github.com/nurikk/ccremote"
-Issues = "https://github.com/nurikk/ccremote/issues"
 dependencies = [
     "aiogram>=3.4",
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
 ]
+
+[project.urls]
+Repository = "https://github.com/nurikk/ccremote"
+Issues = "https://github.com/nurikk/ccremote/issues"
 
 [project.scripts]
 ccremote = "ccremote.cli:main"
